@@ -2,6 +2,8 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, ApiError } from '../api/client';
 import { useCart } from '../context/CartContext';
+import { FulfillmentSection } from './checkout/components/FulfillmentSection';
+import { AddressSection } from './checkout/components/AddressSection';
 import type { Address, Order } from '../types';
 
 export function CheckoutPage() {
@@ -18,9 +20,7 @@ export function CheckoutPage() {
   const [showNewAddress, setShowNewAddress] = useState(false);
   const [newAddress, setNewAddress] = useState({ label: 'Home', street: '', houseNumber: '', postalCode: '', city: '' });
   const [promoCode, setPromoCode] = useState('');
-  const [promoResult, setPromoResult] = useState<{ valid: boolean; reason?: string; discountAmount: number } | null>(
-    null
-  );
+  const [promoResult, setPromoResult] = useState<{ valid: boolean; reason?: string; discountAmount: number } | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'CASH_ON_RECEIPT' | 'CARD_ON_RECEIPT'>('CASH_ON_RECEIPT');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -90,186 +90,105 @@ export function CheckoutPage() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-2xl mx-auto bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-6">
-      <h2 className="text-xl font-extrabold text-gray-900">Checkout</h2>
+    <form onSubmit={handleSubmit} className="max-w-2xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-6">
+      <h2 className="text-xl font-black text-gray-900 tracking-tight border-b border-gray-50 pb-2">Checkout</h2>
 
-      <section>
-        <h3 className="font-semibold mb-2">Fulfillment</h3>
-        <div className="flex gap-3 mb-3">
-          {(['DELIVERY', 'PICKUP'] as const).map((type) => (
-            <button
-              type="button"
-              key={type}
-              onClick={() => setFulfillmentType(type)}
-              className={`px-4 py-2 rounded-full text-sm font-semibold border transition ${
-                fulfillmentType === type
-                  ? 'bg-bb-green text-white border-bb-green'
-                  : 'text-gray-600 border-gray-200 hover:border-bb-green hover:text-bb-green-darker'
-              }`}
-            >
-              {type === 'DELIVERY' ? '🚚 Delivery' : '🏬 Pickup'}
-            </button>
-          ))}
-        </div>
-        <select
-          value={slotLabel}
-          onChange={(e) => setSlotLabel(e.target.value)}
-          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bb-green"
-        >
-          {slots.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-      </section>
+      {/* Component 1: Fulfillment Preference Grid */}
+      <FulfillmentSection
+        fulfillmentType={fulfillmentType}
+        setFulfillmentType={setFulfillmentType}
+        slotLabel={slotLabel}
+        setSlotLabel={setSlotLabel}
+        slots={slots}
+      />
 
+      {/* Component 2: Address Section Mapping */}
       {fulfillmentType === 'DELIVERY' && (
-        <section>
-          <h3 className="font-semibold mb-2">Delivery Address</h3>
-          {addresses.length > 0 && !showNewAddress && (
-            <div className="space-y-2 mb-2">
-              {addresses.map((a) => (
-                <label key={a.id} className="flex items-center gap-2 text-sm border rounded-lg p-2">
-                  <input
-                    type="radio"
-                    name="address"
-                    checked={addressId === a.id}
-                    onChange={() => setAddressId(a.id)}
-                  />
-                  {a.label}: {a.street} {a.houseNumber}, {a.postalCode} {a.city}
-                </label>
-              ))}
-              <button type="button" onClick={() => setShowNewAddress(true)} className="text-bb-green-darker text-xs font-semibold">
-                + Use a new address
-              </button>
-            </div>
-          )}
-          {(showNewAddress || addresses.length === 0) && (
-            <div className="grid grid-cols-2 gap-2">
-              <input
-                placeholder="Label (e.g. Home)"
-                value={newAddress.label}
-                onChange={(e) => setNewAddress({ ...newAddress, label: e.target.value })}
-                className="border rounded-lg px-3 py-2 text-sm col-span-2"
-              />
-              <input
-                placeholder="Street"
-                required
-                value={newAddress.street}
-                onChange={(e) => setNewAddress({ ...newAddress, street: e.target.value })}
-                className="border rounded-lg px-3 py-2 text-sm"
-              />
-              <input
-                placeholder="House number"
-                required
-                value={newAddress.houseNumber}
-                onChange={(e) => setNewAddress({ ...newAddress, houseNumber: e.target.value })}
-                className="border rounded-lg px-3 py-2 text-sm"
-              />
-              <input
-                placeholder="Postal code"
-                required
-                value={newAddress.postalCode}
-                onChange={(e) => setNewAddress({ ...newAddress, postalCode: e.target.value })}
-                className="border rounded-lg px-3 py-2 text-sm"
-              />
-              <input
-                placeholder="City"
-                required
-                value={newAddress.city}
-                onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
-                className="border rounded-lg px-3 py-2 text-sm"
-              />
-              {addresses.length > 0 && (
-                <button type="button" onClick={() => setShowNewAddress(false)} className="text-bb-green-darker text-xs font-semibold col-span-2 text-left">
-                  ← Use a saved address
-                </button>
-              )}
-            </div>
-          )}
-        </section>
+        <AddressSection
+          addresses={addresses}
+          addressId={addressId}
+          setAddressId={setAddressId}
+          showNewAddress={showNewAddress}
+          setShowNewAddress={setShowNewAddress}
+          newAddress={newAddress}
+          setNewAddress={setNewAddress}
+        />
       )}
 
-      <section>
-        <h3 className="font-semibold mb-2">Promo Code</h3>
+      {/* Promo Voucher Area */}
+      <section className="space-y-2">
+        <h3 className="text-sm font-black uppercase tracking-wider text-gray-500">Promo Voucher</h3>
         <div className="flex gap-2">
           <input
             value={promoCode}
-            onChange={(e) => {
-              setPromoCode(e.target.value);
-              setPromoResult(null);
-            }}
+            onChange={(e) => { setPromoCode(e.target.value); setPromoResult(null); }}
             placeholder="e.g. WELCOME10"
-            className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bb-green"
+            className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bb-green"
           />
           <button
             type="button"
             onClick={handleValidatePromo}
-            className="px-4 py-2 rounded-full text-sm border border-bb-green text-bb-green-darker font-semibold hover:bg-bb-green-light"
+            className="px-5 py-2 rounded-full text-xs font-bold border border-bb-green text-bb-green-darker bg-bb-green-light hover:bg-bb-green hover:text-white transition-all shadow-sm"
           >
             Apply
           </button>
         </div>
         {promoResult && (
-          <p className={`text-xs mt-1 ${promoResult.valid ? 'text-bb-green-darker' : 'text-red-600'}`}>
-            {promoResult.valid ? `Discount applied: -€${promoResult.discountAmount.toFixed(2)}` : promoResult.reason}
+          <p className={`text-xs font-semibold mt-1 ${promoResult.valid ? 'text-bb-green-darker' : 'text-red-600'}`}>
+            {promoResult.valid ? `Discount applied: -€${promoResult.discountAmount.toFixed(2)}` : `⚠️ ${promoResult.reason}`}
           </p>
         )}
       </section>
 
-      <section>
-        <h3 className="font-semibold mb-2">Payment</h3>
+      {/* Payment Selection Toggles */}
+      <section className="space-y-2">
+        <h3 className="text-sm font-black uppercase tracking-wider text-gray-500">Payment Summary</h3>
         <div className="flex gap-3">
           {(['CASH_ON_RECEIPT', 'CARD_ON_RECEIPT'] as const).map((method) => (
-            <label
-              key={method}
-              className={`flex items-center gap-2 text-sm border rounded-lg px-3 py-2 ${
-                paymentMethod === method ? 'border-bb-green bg-bb-green-light' : 'border-gray-200'
-              }`}
-            >
+            <label key={method} className={`flex items-center gap-2 text-xs font-bold border rounded-xl px-4 py-2.5 shadow-sm cursor-pointer select-none transition-all ${paymentMethod === method ? 'border-bb-green bg-bb-green-light/40 text-bb-green-darker' : 'border-gray-200 bg-white'}`}>
               <input
                 type="radio"
                 name="payment"
                 checked={paymentMethod === method}
                 onChange={() => setPaymentMethod(method)}
+                className="text-bb-green focus:ring-bb-green"
               />
-              {method === 'CASH_ON_RECEIPT' ? 'Cash on receipt' : 'Card on receipt'}
+              {method === 'CASH_ON_RECEIPT' ? '💶 Cash on delivery' : '💳 Card on delivery'}
             </label>
           ))}
         </div>
-        <p className="text-xs text-gray-400 mt-1">Online card payment (Stripe/Mollie) is planned for a later release.</p>
       </section>
 
-      <section className="border-t border-gray-100 pt-4 space-y-1 text-sm">
+      {/* Total Calculations Ledger Matrix */}
+      <section className="border-t border-gray-100 pt-4 space-y-1.5 text-xs font-medium text-gray-600">
         <div className="flex justify-between">
-          <span>Subtotal</span>
-          <span>€{subtotal.toFixed(2)}</span>
+          <span>Gross Basket Subtotal</span>
+          <span className="font-bold text-gray-900">€{subtotal.toFixed(2)}</span>
         </div>
         {discount > 0 && (
-          <div className="flex justify-between text-bb-green-darker">
-            <span>Discount</span>
+          <div className="flex justify-between text-bb-green-darker font-bold">
+            <span>Promo Coupon Reduction</span>
             <span>-€{discount.toFixed(2)}</span>
           </div>
         )}
         <div className="flex justify-between">
-          <span>{fulfillmentType === 'DELIVERY' ? 'Delivery fee' : 'Pickup fee'}</span>
-          <span>€{fee.toFixed(2)}</span>
+          <span>{fulfillmentType === 'DELIVERY' ? 'Logistics Delivery Fee' : 'Warehouse Pickup Fee'}</span>
+          <span className="font-bold text-gray-900">€{fee.toFixed(2)}</span>
         </div>
-        <div className="flex justify-between font-bold text-base border-t border-gray-100 pt-2">
-          <span>Total</span>
-          <span>€{total.toFixed(2)}</span>
+        <div className="flex justify-between font-black text-gray-900 text-base border-t border-gray-100 pt-2 tracking-tight">
+          <span>Grand Invoice Total</span>
+          <span className="text-bb-green-darker">€{total.toFixed(2)}</span>
         </div>
       </section>
 
-      {error && <p className="text-red-600 text-sm">{error}</p>}
+      {error && <div className="p-3 bg-red-50 border border-red-100 text-red-600 rounded-xl text-xs font-semibold">⚠️ {error}</div>}
 
       <button
         type="submit"
         disabled={submitting}
-        className="w-full bg-bb-green hover:bg-bb-green-dark text-white font-bold py-3 rounded-full text-sm shadow-sm disabled:opacity-50 transition"
+        className="w-full bg-bb-green hover:bg-bb-green-dark text-white font-black py-3 rounded-full text-sm shadow-sm disabled:opacity-50 transition-all transform active:scale-[0.99]"
       >
-        {submitting ? 'Placing order...' : 'Place Order'}
+        {submitting ? 'Verifying parameters...' : 'Confirm & Place Order'}
       </button>
     </form>
   );

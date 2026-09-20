@@ -80,6 +80,8 @@ model Product {
   description String?
   unit        String      @default("pcs")
   price       Float
+  oldPrice    Float?      // 💥 ADDED: Tracks older struck-out structural pricing metrics safely
+  imageUrl    String?     // 💥 ADDED: Links to public web-hosted grocery photos
   vatRate     Float       @default(0.06)
   allergens   String      @default("[]") // JSON-encoded string array
   imageEmoji  String      @default("🛒")
@@ -91,6 +93,7 @@ model Product {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 }
+
 
 model PromoCode {
   id            String       @id @default(uuid())

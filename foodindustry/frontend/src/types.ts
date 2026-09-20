@@ -16,6 +16,7 @@ export interface Category {
   productCount?: number;
 }
 
+// Open src/types.ts, locate the Product interface and add your imageUrl:
 export interface Product {
   id: string;
   sku: string;
@@ -23,6 +24,8 @@ export interface Product {
   description: string | null;
   unit: string;
   price: number;
+  oldPrice?: number;
+  imageUrl?: string; // 🌟 ADDED: String hook parameter to track hosted JPG / WebP image paths!
   vatRate: number;
   allergens: string[];
   imageEmoji: string;
@@ -31,6 +34,7 @@ export interface Product {
   categoryId: string;
   category?: Category;
 }
+
 
 export interface Address {
   id: string;
@@ -107,8 +111,14 @@ export interface HomepageSection {
     imageUrl?: string;
     buttonText?: string;
     buttonLink?: string;
+    rotationInterval?: string | null; 
+    // 🌟 ADD THIS SPECIFIC PROPERTY LINE RIGHT HERE:
+    textAlignment?: string | null; 
+    images?: Array<{ imageUrl: string; link?: string | null; fit?: 'CONTAIN' | 'COVER' }>;
   };
 }
+
+
 
 export interface HomepageLayout {
   sections: HomepageSection[];

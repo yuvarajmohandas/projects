@@ -1,9 +1,11 @@
 import { useEffect, useState, type DragEvent, type FormEvent } from 'react';
 import { api, ApiError } from '../../api/client';
+import { HomepageSectionCard } from './components/HomepageSectionCard';
 import type { HomepageLayout, HomepageSection, HomepageSectionType } from '../../types';
 
 const defaultLayout: HomepageLayout = {
-  header: { order: ['logo', 'name', 'navigation', 'cart'], alignment: 'left' },
+  // ✅ Inserted 'search' into the default sequence list array
+  header: { order: ['logo', 'name', 'search', 'navigation', 'cart'], alignment: 'left' },
   sections: [],
 };
 
@@ -16,10 +18,11 @@ const sectionLabels: Record<HomepageSectionType, string> = {
 };
 
 const headerLabels: Record<string, string> = {
-  logo: 'Logo',
-  name: 'Website name',
-  navigation: 'Navigation',
-  cart: 'Basket',
+  logo: 'Logo icon',
+  name: 'Website name (MitraKart)',
+  search: '🔍 Central Search Input Bar', // 🌟 ADDED SEARCH CHIP CAPSUlE
+  navigation: 'Admin / Login portals links',
+  cart: 'Basket / Cart checkout count',
 };
 
 function createSection(type: HomepageSectionType, sortOrder: number): HomepageSection {
@@ -42,8 +45,25 @@ export function AdminHomepagePage() {
   useEffect(() => {
     api
       .get<HomepageLayout>('/homepage')
-      .then(setLayout)
-      .catch((error) => setMessage(error instanceof ApiError ? error.message : 'Could not load homepage layout'))
+      .then((fetchedLayout) => {
+        // 🛡️ FRONTEND RECOVERY FALLBACK: If the backend database doesn't know about 'search' yet,
+        // explicitly inject it into the local state so the draggable capsule chip pill displays!
+        if (fetchedLayout.header && fetchedLayout.header.order && !fetchedLayout.header.order.includes('search')) {
+          const structuralOrder = [...fetchedLayout.header.order];
+          const logoIndex = structuralOrder.indexOf('logo');
+
+          if (logoIndex !== -1) {
+            structuralOrder.splice(logoIndex + 1, 0, 'search'); // Placed cleanly next to logo fallback index slot
+          } else {
+            structuralOrder.push('search');
+          }
+
+          fetchedLayout.header.order = structuralOrder;
+        }
+
+        setLayout(fetchedLayout);
+      })
+      .catch((error) => setMessage(error instanceof ApiError ? error.message : 'Could not load layout configuration'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -85,24 +105,38 @@ export function AdminHomepagePage() {
     });
   }
 
-  async function uploadImage(section: HomepageSection, file: File) {
-    if (!file.type.startsWith('image/')) {
-      setMessage('Please select an image file');
+  // Find the uploadImage function inside your src/pages/admin/AdminHomepagePage.tsx and replace it:
+  async function uploadImage(section: HomepageSection, file: File, slotIndex?: number) {
+    const permittedExtensions = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+    if (!permittedExtensions.includes(file.type)) {
+      setMessage('Invalid file type! Please upload a valid PNG, JPG, JPEG, or WEBP image.');
       return;
     }
+    if (file.size > 2 * 1024 * 1024) {
+      setMessage('File too large! Images must be under 2MB.');
+      return;
+    }
+
     try {
       const result = await api.upload<{ url: string }>('/admin/homepage/upload', file);
-      updateSection(section.id, { ...section.content, imageUrl: result.url });
+
+      // 💥 DYNAMIC ARRAY BUILDER SLOT MANAGEMENT
+      if (slotIndex !== undefined) {
+        const currentImages = (section.content as any).images || [];
+        const updatedImages = [...currentImages];
+        updatedImages[slotIndex] = {
+          ...updatedImages[slotIndex],
+          imageUrl: result.url
+        };
+        updateSection(section.id, { ...section.content, images: updatedImages });
+      } else {
+        updateSection(section.id, { ...section.content, imageUrl: result.url });
+      }
+
       setMessage('Image uploaded. Save the layout to publish it.');
     } catch (error) {
       setMessage(error instanceof ApiError ? error.message : 'Image upload failed');
     }
-  }
-
-  function onFileDrop(event: DragEvent<HTMLDivElement>, section: HomepageSection) {
-    event.preventDefault();
-    const file = event.dataTransfer.files[0];
-    if (file) void uploadImage(section, file);
   }
 
   async function saveLayout(event: FormEvent) {
@@ -112,7 +146,7 @@ export function AdminHomepagePage() {
     try {
       const saved = await api.put<HomepageLayout>('/admin/homepage', layout);
       setLayout(saved);
-      setMessage('Homepage layout saved.');
+      setMessage('Homepage layout successfully saved.');
     } catch (error) {
       setMessage(error instanceof ApiError ? error.message : 'Could not save homepage layout');
     } finally {
@@ -120,125 +154,99 @@ export function AdminHomepagePage() {
     }
   }
 
-  if (loading) return <p className="text-gray-500">Loading homepage editor...</p>;
+  if (loading) return <p className="text-gray-400 font-bold text-center py-12">Loading homepage editor...</p>;
 
   return (
-    <form onSubmit={saveLayout} className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <form onSubmit={saveLayout} className="space-y-6 max-w-7xl mx-auto p-1">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-4 bg-white p-6 rounded-2xl shadow-sm">
         <div>
-          <h3 className="text-xl font-bold text-gray-900">Homepage editor</h3>
-          <p className="text-sm text-gray-500">Drag sections and header items to rearrange them.</p>
+          <h3 className="text-xl font-black text-gray-900 tracking-tight">Homepage Layout Editor</h3>
+          <p className="text-xs font-semibold text-gray-500 mt-0.5">Manage banners, re-order content blocks, and adjust header sequences.</p>
         </div>
-        <button type="submit" disabled={saving} className="rounded-lg bg-bb-green px-5 py-2 font-bold text-white disabled:opacity-50">
-          {saving ? 'Saving...' : 'Save layout'}
+        <button type="submit" disabled={saving} className="rounded-xl bg-bb-green hover:bg-bb-green-dark transition-colors px-6 py-2.5 font-black text-sm text-white shadow-sm disabled:opacity-50">
+          {saving ? 'Saving changes...' : 'Save layout'}
         </button>
       </div>
 
-      {message && <p className="rounded-lg bg-bb-green-light px-4 py-3 text-sm text-bb-green-darker">{message}</p>}
+      {message && <p className="rounded-xl bg-bb-green-light border border-bb-green/20 px-4 py-3 text-xs font-bold text-bb-green-darker">{message}</p>}
 
-      <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h4 className="font-bold text-gray-900">Header layout</h4>
-        <p className="mb-4 text-sm text-gray-500">This controls the order of the items in your website header.</p>
-        <div className="mb-4 flex flex-wrap gap-2">
+      {/* HEADER SEQUENCER WIDGET */}
+      {/* HEADER SEQUENCER WIDGET */}
+      <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
+        <div>
+          <h4 className="font-black text-sm text-gray-900 tracking-tight">Header Component Layout Sequences</h4>
+          <p className="text-[11px] text-gray-400 font-medium">Drag components horizontally to rearrange order in your top bar layout.</p>
+        </div>
+
+        {/* 🌟 FIXED: Added items-center, explicit gap spacing, and inline flex properties to stabilize drag tracking */}
+        <div className="flex flex-row flex-wrap items-center gap-3 pt-1 border border-dashed border-gray-100 p-3 rounded-xl bg-gray-50/30">
           {layout.header.order.map((item) => (
             <div
               key={item}
               draggable
               onDragStart={() => setDraggedId(`header:${item}`)}
               onDragOver={(event) => event.preventDefault()}
+              onDragEnter={(event) => event.preventDefault()}
               onDrop={(event) => {
                 event.preventDefault();
-                if (draggedId?.startsWith('header:')) updateHeaderOrder(draggedId.slice(7), item);
+                // Ensure we are dropping a header item onto another header item
+                if (draggedId?.startsWith('header:')) {
+                  const sourceItem = draggedId.slice(7);
+                  updateHeaderOrder(sourceItem, item);
+                }
                 setDraggedId(null);
               }}
-              className="cursor-grab rounded-lg border border-bb-green bg-bb-green-light px-4 py-2 text-sm font-semibold text-bb-green-darker"
+              /* 🌟 FIXED: Enhanced visual grab indicators, transition-all, and absolute mouse tracking properties */
+              className="cursor-grab active:cursor-grabbing select-none rounded-xl border border-bb-green bg-bb-green-light/40 hover:bg-bb-green-light px-4 py-2 text-xs font-black text-bb-green-darker transition-all transform hover:scale-[1.02] shadow-sm flex items-center gap-1.5"
             >
-              ☷ {headerLabels[item]}
+              <span>☷</span>
+              <span>{headerLabels[item]}</span>
             </div>
           ))}
         </div>
-        <label className="flex items-center gap-3 text-sm font-semibold">
-          Header alignment
-          <select
-            value={layout.header.alignment}
-            onChange={(event) => setLayout((current) => ({ ...current, header: { ...current.header, alignment: event.target.value as HomepageLayout['header']['alignment'] } }))}
-            className="rounded-lg border border-gray-200 px-3 py-2 font-normal"
-          >
-            <option value="left">Left</option>
-            <option value="center">Center</option>
-            <option value="right">Right</option>
-          </select>
-        </label>
+
+        <div className="pt-2 border-t border-gray-50">
+          <label className="flex items-center gap-3 text-xs font-bold text-gray-700">
+            Header alignment
+            <select
+              value={layout.header.alignment}
+              onChange={(event) => setLayout((current) => ({ ...current, header: { ...current.header, alignment: event.target.value as HomepageLayout['header']['alignment'] } }))}
+              className="rounded-lg border border-gray-200 px-3 py-1.5 font-medium bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-bb-green text-xs cursor-pointer shadow-sm"
+            >
+              <option value="left">Left Aligned</option>
+              <option value="center">Center Aligned</option>
+              <option value="right">Right Aligned</option>
+            </select>
+          </label>
+        </div>
       </section>
 
-      <section className="space-y-3">
+
+      {/* DYNAMIC SECTIONS GRID DISPLAY ELEMENT */}
+      <section className="space-y-4">
         {layout.sections.map((section) => (
-          <div
+          <HomepageSectionCard
             key={section.id}
-            draggable
-            onDragStart={() => setDraggedId(section.id)}
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={(event) => onDrop(event, section.id)}
-            className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
-          >
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <h4 className="font-bold text-gray-900">☷ {sectionLabels[section.type]}</h4>
-              <button
-                type="button"
-                onClick={() => setLayout((current) => ({ ...current, sections: current.sections.filter((item) => item.id !== section.id) }))}
-                className="text-sm font-semibold text-red-600"
-              >
-                Remove
-              </button>
-            </div>
-            {section.type !== 'spacer' && (
-              <div className="grid gap-3 sm:grid-cols-2">
-                <input
-                  value={section.content.title ?? ''}
-                  onChange={(event) => updateSection(section.id, { ...section.content, title: event.target.value })}
-                  placeholder="Section title"
-                  className="rounded-lg border border-gray-200 px-3 py-2"
-                />
-                <input
-                  value={section.content.buttonText ?? ''}
-                  onChange={(event) => updateSection(section.id, { ...section.content, buttonText: event.target.value })}
-                  placeholder="Button text (optional)"
-                  className="rounded-lg border border-gray-200 px-3 py-2"
-                />
-                <textarea
-                  value={section.content.description ?? ''}
-                  onChange={(event) => updateSection(section.id, { ...section.content, description: event.target.value })}
-                  placeholder="Description"
-                  className="rounded-lg border border-gray-200 px-3 py-2 sm:col-span-2"
-                  rows={2}
-                />
-                <div
-                  onDragOver={(event) => event.preventDefault()}
-                  onDrop={(event) => onFileDrop(event, section)}
-                  className="rounded-lg border-2 border-dashed border-gray-300 p-4 text-sm text-gray-500 sm:col-span-2"
-                >
-                  {section.content.imageUrl ? (
-                    <img src={section.content.imageUrl} alt="" className="mb-2 h-32 w-full rounded-lg object-cover" />
-                  ) : (
-                    <p>Drop an image here or choose a file</p>
-                  )}
-                  <input type="file" accept="image/*" onChange={(event) => event.target.files?.[0] && void uploadImage(section, event.target.files[0])} />
-                </div>
-              </div>
-            )}
-          </div>
+            section={section}
+            setDraggedId={setDraggedId}
+            onDrop={onDrop}
+            onUpdateSection={updateSection}
+            onRemoveSection={(id) => setLayout(current => ({ ...current, sections: current.sections.filter(item => item.id !== id) }))}
+            onUploadImage={uploadImage}
+          />
         ))}
       </section>
 
-      <div className="flex flex-wrap gap-2">
+      {/* ADD SECTION TRIGGER SWITCH BUTTONS */}
+      <div className="flex flex-wrap gap-2 bg-gray-50 border border-gray-100 rounded-2xl p-4">
         {(Object.keys(sectionLabels) as HomepageSectionType[]).map((type) => (
           <button
             key={type}
             type="button"
             onClick={() => setLayout((current) => ({ ...current, sections: [...current.sections, createSection(type, current.sections.length)] }))}
-            className="rounded-lg border border-bb-green bg-white px-3 py-2 text-sm font-semibold text-bb-green-darker"
+            className="rounded-xl border border-gray-200 bg-white hover:border-bb-green hover:text-bb-green-darker px-4 py-2 text-xs font-black text-gray-600 transition-all shadow-sm transform active:scale-95"
           >
-            + {sectionLabels[type]}
+            + Append {sectionLabels[type]}
           </button>
         ))}
       </div>
