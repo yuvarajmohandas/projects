@@ -1,0 +1,13 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "PYTHONPATH": "..",
+    "GROQ_API_KEY": "YOUR_ACTUAL_GROQ_API_KEY",
+    "ODOO_URL": "http://20.107.53.209:8069",
+    "ODOO_DB": "odoo",
+    "ODOO_USER": "admin",
+    "ODOO_PASSWORD": "password"
+  }
+}

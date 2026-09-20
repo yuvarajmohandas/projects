@@ -1,0 +1,97 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BelgoIndic Marketplace</title>
+    <script src="https://unpkg.com" crossorigin></script>
+    <script src="https://unpkg.com" crossorigin></script>
+    <script src="https://unpkg.com"></script>
+    <script src="https://tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 antialiased">
+
+    <div id="root"></div>
+
+    <!-- Note type="text/babel" and type="module" combo to load split JavaScript files properly -->
+    <script type="text/babel" type="module">
+        import { INITIAL_PRODUCTS, PLATFORM_SETTINGS } from './data.js';
+        import { Header, CustomerView, VendorView } from './components.js';
+
+        const { useState } = React;
+
+        function App() {
+            const [view, setView] = useState('customer');
+            const [products, setProducts] = useState(INITIAL_PRODUCTS);
+            const [cart, setCart] = useState([]);
+            const [orders, setOrders] = useState([]);
+
+            const addToCart = (product) => {
+                const existing = cart.find(item => item.id === product.id);
+                if (existing) {
+                    setCart(cart.map(item => item.id === product.id ? { ...item, qty: item.qty + 1 } : item));
+                } else {
+                    setCart([...cart, { ...product, qty: 1 }]);
+                }
+            };
+
+            const removeFromCart = (id) => setCart(cart.filter(item => item.id !== id));
+
+            const toggleStock = (id) => {
+                setProducts(products.map(p => p.id === id ? { ...p, inStock: !p.inStock } : p));
+            };
+
+            const handleCheckout = () => {
+                if (cart.length === 0) return;
+                
+                const cartSubtotal = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+                const itemsByStore = {};
+                
+                cart.forEach(item => {
+                    if (!itemsByStore[item.storeId]) itemsByStore[item.storeId] = { name: item.storeName, total: 0 };
+                    itemsByStore[item.storeId].total += item.price * item.qty;
+                });
+
+                const newOrder = {
+                    id: 'ORD-' + Math.floor(1000 + Math.random() * 9000),
+                    date: new Date().toLocaleTimeString(),
+                    commission: cartSubtotal * PLATFORM_SETTINGS.COMMISSION_RATE,
+                    splits: Object.keys(itemsByStore).map(id => ({
+                        storeId: id,
+                        storeName: itemsByStore[id].name,
+                        payout: itemsByStore[id].total * (1 - PLATFORM_SETTINGS.COMMISSION_RATE)
+                    }))
+                };
+
+                setOrders([newOrder, ...orders]);
+                setCart([]);
+                alert("Order simulation processed!");
+            };
+
+            return (
+                <div class="min-h-screen flex flex-col">
+                    <Header currentView={view} setView={setView} />
+                    <main class="flex-grow p-6 max-w-7xl w-full mx-auto">
+                        {view === 'customer' ? (
+                            <CustomerView 
+                                products={products} 
+                                addToCart={addToCart} 
+                                cart={cart} 
+                                removeFromCart={removeFromCart} 
+                                checkout={handleCheckout} 
+                                deliveryFee={PLATFORM_SETTINGS.DELIVERY_FEE} 
+                            />
+                        ) : (
+                            <VendorView products={products} toggleStock={toggleStock} orders={orders} />
+                        )}
+                    </main>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

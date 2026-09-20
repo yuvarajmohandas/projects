@@ -1,0 +1,5 @@
+azure-functions
+azure-servicebus
+simple-salesforce
+PyJWT
+requests

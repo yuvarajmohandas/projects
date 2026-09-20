@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BookMyTrip - Native Booking Platform</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+    <nav class="navbar">
+        <div class="nav-brand">BookMyTrip</div>
+        <div class="nav-links">
+            <a href="#search-section" onclick="switchTab('flights')">Search Flights</a>
+            <a href="#search-section" onclick="switchTab('hotels')">Search Hotels</a>
+            <a href="#checkout-section" class="nav-checkout-btn">🛒 Cart (<span id="cart-count">0</span>)</a>
+        </div>
+    </nav>
+
+    <!-- HERO & SEARCH CONTROLS -->
+    <header class="hero-section">
+        <div class="hero-overlay">
+            <h1>Your Next Journey Starts Here</h1>
+            <p class="subtitle">Direct Native Booking Engine</p>
+            
+            <!-- SEARCH CONTROL MODULE -->
+            <div class="search-widget" id="search-section">
+                <!-- Tab Controls -->
+                <div class="search-tabs">
+                    <button class="tab-btn active" id="tab-flights" onclick="switchTab('flights')">✈️ Our Flights</button>
+                    <button class="tab-btn" id="tab-hotels" onclick="switchTab('hotels')">🏨 Our Hotels</button>
+                </div>
+
+                <!-- Search Filter Form -->
+                <form id="search-form" onsubmit="executeSearch(event)">
+                    <div class="search-inputs">
+                        <div class="input-group">
+                            <label for="from-location">From</label>
+                            <input type="text" id="from-location" placeholder="Departure City" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="to-location">To / Destination</label>
+                            <input type="text" id="to-location" placeholder="Arrival City / Hotel Location" required>
+                        </div>
+                        <div class="input-group">
+                            <label id="date-start-label" for="date-start">Depart Date</label>
+                            <input type="date" id="date-start" required>
+                        </div>
+                        <div class="input-group" id="return-group">
+                            <label id="date-end-label" for="date-end">Return Date</label>
+                            <input type="date" id="date-end">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary">Filter Available Inventory</button>
+                </form>
+            </div>
+        </div>
+    </header>
+
+    <!-- DYNAMIC CATALOG LISTINGS -->
+    <main class="content-container">
+        <section class="grid-section">
+            <h3 id="results-heading">Available Flights</h3>
+            <p class="section-sub" id="results-subheading">Select an itinerary to add it to your booking payload.</p>
+
+            <!-- Dynamic Inventory Grid -->
+            <div class="card-grid" id="dynamic-results-grid">
+                <!-- JavaScript automatically injects native product cards here -->
+            </div>
+        </section>
+
+        <!-- NATIVE CHECKOUT & AZURE GATEWAY SECTION -->
+        <section id="checkout-section" class="checkout-container">
+            <h3>Complete Your Booking</h3>
+            <p class="section-sub">Review your selections and submit directly to our Salesforce corporate pipeline.</p>
+            
+            <div class="checkout-layout">
+                <!-- Trip Summary Sheet -->
+                <div class="summary-card">
+                    <h4>Selected Itinerary</h4>
+                    <div id="selected-flight-summary" class="summary-item empty">No flight selected yet.</div>
+                    <div id="selected-hotel-summary" class="summary-item empty">No hotel selected yet.</div>
+                    
+                    <div class="total-row">
+                        <span>Total Est. Price:</span>
+                        <span id="total-price-display">$0.00</span>
+                    </div>
+                </div>
+
+                <!-- Customer Submission Form -->
+                <form id="azure-booking-form" onsubmit="submitToAzure(event)">
+                    <div class="form-grid">
+                        <div class="input-group">
+                            <label for="cust-first-name">First Name</label>
+                            <input type="text" id="cust-first-name" required placeholder="John">
+                        </div>
+                        <div class="input-group">
+                            <label for="cust-last-name">Last Name</label>
+                            <input type="text" id="cust-last-name" required placeholder="Doe">
+                        </div>
+                        <div class="input-group">
+                            <label for="cust-email">Email Address</label>
+                            <input type="email" id="cust-email" required placeholder="john.doe@example.com">
+                        </div>
+                        <div class="input-group">
+                            <label for="cust-phone">Phone Number</label>
+                            <input type="tel" id="cust-phone" required placeholder="+1 (555) 000-0000">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-submit-booking" id="btn-submit-booking" disabled>
+                        Confirm Booking & Sync to Salesforce
+                    </button>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <!-- LOAD CLEANED APPLICATION ROUTING CORE -->
+    <script src="app.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+/*
+ * BigBasket-inspired design tokens: a punchy lime/leaf green for branding and
+ * primary actions, a warm orange for savings/deal badges, and a soft neutral
+ * app background so white product cards stand out.
+ */
+@theme {
+  --color-bb-green: #8dc63f;
+  --color-bb-green-dark: #6ba82e;
+  --color-bb-green-darker: #4f8a1f;
+  --color-bb-green-light: #eef8e0;
+  --color-bb-orange: #ff9f00;
+  --color-bb-orange-dark: #e88a00;
+  --color-bb-bg: #f4f5f0;
+}
+
+body {
+  background-color: var(--color-bb-bg);
+}
