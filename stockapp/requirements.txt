@@ -1,0 +1,7 @@
+azure-functions
+yfinance
+pandas
+numpy
+requests
+streamlit
+plotly
